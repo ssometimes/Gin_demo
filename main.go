@@ -22,7 +22,10 @@ type User struct {
 
 func main() {
 	db := InitDb()
-	db.AutoMigrate(&User{})
+	err := db.AutoMigrate(&User{})
+	if err != nil {
+		fmt.Println("自动创建数据表失败")
+	}
 	r := gin.Default()
 	r.POST("/api/auth/register", func(ctx *gin.Context) {
 		// 获取参数
