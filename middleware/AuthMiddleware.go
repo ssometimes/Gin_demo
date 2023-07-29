@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// 中间件的标准写法，应该通过闭包实现，这样能在返回函数前做操作
+// AuthMiddleware 中间件的标准写法，应该通过闭包实现，这样能在返回函数前做操作
 func AuthMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		// 获取authorization header

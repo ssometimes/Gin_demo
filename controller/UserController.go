@@ -2,7 +2,9 @@ package controller
 
 import (
 	"OceanLearn/common"
+	"OceanLearn/dto"
 	"OceanLearn/model"
+	"OceanLearn/response"
 	"OceanLearn/util"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -19,18 +21,12 @@ func Register(ctx *gin.Context) {
 	password := ctx.PostForm("password")
 	// 数据验证
 	if len(telephone) != 11 {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{
-			"code": 422,
-			"msg":  "手机号必须为 11 位",
-		})
+		response.Response(ctx, http.StatusUnprocessableEntity, 422, nil, "手机号必须为 11 位")
 		return
 	}
 
 	if len(password) < 6 {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{
-			"code":    422,
-			"message": "密码不能少于 6 位",
-		})
+		response.Response(ctx, http.StatusUnprocessableEntity, 422, nil, "密码不能少于 6 位")
 		return
 	}
 
@@ -41,19 +37,13 @@ func Register(ctx *gin.Context) {
 	log.Println("参数为："+name, telephone, password)
 	// 判断手机号是否存在
 	if isTelephoneExist(DB, telephone) {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{
-			"code":    422,
-			"message": "手机号已经存在",
-		})
+		response.Response(ctx, http.StatusUnprocessableEntity, 422, nil, "手机号已经存在")
 		return
 	}
 
 	hasePassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"code":    500,
-			"message": "加密错误",
-		})
+		response.Response(ctx, http.StatusInternalServerError, 500, nil, "加密错误")
 		return
 	}
 	// 创建新的对象进行存储
@@ -65,11 +55,7 @@ func Register(ctx *gin.Context) {
 	}
 
 	DB.Create(&user)
-
-	ctx.JSON(http.StatusOK, gin.H{
-		"code":    200,
-		"message": name + " 注册成功",
-	})
+	response.Success(ctx, nil, "注册成功")
 }
 
 func Login(ctx *gin.Context) {
@@ -81,17 +67,11 @@ func Login(ctx *gin.Context) {
 
 	// 数据校验
 	if len(telephone) != 11 {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{
-			"code":    422,
-			"message": "手机必须为11位",
-		})
+		response.Response(ctx, http.StatusUnprocessableEntity, 422, nil, "手机号必须为 11 位")
 		return
 	}
 	if len(password) < 6 {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{
-			"code":    422,
-			"message": "密码少于6位",
-		})
+		response.Response(ctx, http.StatusUnprocessableEntity, 422, nil, "密码不能少于 6 位")
 		return
 	}
 
@@ -99,37 +79,24 @@ func Login(ctx *gin.Context) {
 	var user model.User
 	DB.Where("telephone = ?", telephone).First(&user)
 	if user.ID == 0 {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{
-			"code":    422,
-			"message": "用户不存在",
-		})
+		response.Response(ctx, http.StatusUnprocessableEntity, 422, nil, "用户不存在")
 		return
 	}
 
 	// 验证密码是否正确
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{
-			"code":    400,
-			"message": "密码错误",
-		})
+		response.Fail(ctx, nil, "密码错误")
 		return
 	}
 
 	// 发放token
 	token, err := common.ReleaseToken(user)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"code":    401,
-			"message": "系统异常",
-		})
+		response.Response(ctx, http.StatusInternalServerError, 500, nil, "系统异常")
 		log.Printf("token generate error: %v", err)
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"code":    200,
-		"data":    gin.H{"token": token},
-		"message": name + ": 登录成功",
-	})
+	response.Success(ctx, gin.H{"token": token}, name+"登录成功")
 	return
 }
 
@@ -145,7 +112,7 @@ func isTelephoneExist(db *gorm.DB, telephone string) bool {
 func Info(ctx *gin.Context) {
 	user, _ := ctx.Get("user")
 	ctx.JSON(http.StatusOK, gin.H{
-		"code":    200,
-		"message": gin.H{"user": user},
+		"code": 200,
+		"data": gin.H{"user": dto.ToUserDto(user.(model.User))}, // 这里使用了类型断言
 	})
 }
