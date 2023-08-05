@@ -5,5 +5,5 @@ datasource:
   port: 3306
   database: GinDemo
   username: root
-  password: root
+  password: vlt159.0
   charset: utf8
