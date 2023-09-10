@@ -4,6 +4,7 @@ import (
 	"OceanLearn/common"
 	"OceanLearn/model"
 	"OceanLearn/response"
+	"OceanLearn/vo"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -30,21 +31,23 @@ func NewCategoryController() ICategoryController {
 
 func (c CategoryController) Create(ctx *gin.Context) {
 	// 定义参数接口请求的参数值
-	var requestCategory model.Category
-	ctx.ShouldBind(&requestCategory)
-	if requestCategory.Name == "" {
+	var requestCategory vo.CreateCategoryRequest
+	if err := ctx.ShouldBind(&requestCategory); err != nil {
 		response.Fail(ctx, nil, "数据验证错误，分类名称必填")
 		return
 	}
+
+	category := model.Category{Name: requestCategory.Name}
 	// 添加到数据库中
-	c.DB.Create(&requestCategory)
-	response.Success(ctx, gin.H{"category": requestCategory}, "")
+	if err := c.DB.Create(&category).Error; err != nil {
+		panic(err)
+	}
+	response.Success(ctx, gin.H{"category": category}, "")
 }
 
 func (c CategoryController) Update(ctx *gin.Context) {
-	var requestCategory model.Category
-	ctx.ShouldBind(&requestCategory)
-	if requestCategory.Name == "" {
+	var requestCategory vo.CreateCategoryRequest
+	if err := ctx.ShouldBind(&requestCategory); err != nil {
 		response.Fail(ctx, nil, "数据验证错误，分类名称必填")
 		return
 	}
@@ -60,7 +63,9 @@ func (c CategoryController) Update(ctx *gin.Context) {
 		return
 	}
 
-	c.DB.Model(&updateCategory).Update("name", requestCategory.Name)
+	if err := c.DB.Model(&updateCategory).Update("name", requestCategory.Name).Error; err != nil {
+		panic(err)
+	}
 	response.Success(ctx, gin.H{"category": updateCategory}, "")
 
 }
