@@ -31,18 +31,19 @@ func NewCategoryController() ICategoryController {
 func (c CategoryController) Create(ctx *gin.Context) {
 	// 定义参数接口请求的参数值
 	var requestCategory model.Category
-	ctx.Bind(requestCategory)
+	ctx.ShouldBind(&requestCategory)
 	if requestCategory.Name == "" {
 		response.Fail(ctx, nil, "数据验证错误，分类名称必填")
+		return
 	}
 	// 添加到数据库中
-	c.DB.Create(requestCategory)
+	c.DB.Create(&requestCategory)
 	response.Success(ctx, gin.H{"category": requestCategory}, "")
 }
 
 func (c CategoryController) Update(ctx *gin.Context) {
 	var requestCategory model.Category
-	ctx.ShouldBind(requestCategory)
+	ctx.ShouldBind(&requestCategory)
 	if requestCategory.Name == "" {
 		response.Fail(ctx, nil, "数据验证错误，分类名称必填")
 		return
@@ -59,18 +60,12 @@ func (c CategoryController) Update(ctx *gin.Context) {
 		return
 	}
 
-	c.DB.Model(&updateCategory).Updates(gin.H{"name": requestCategory.Name})
+	c.DB.Model(&updateCategory).Update("name", requestCategory.Name)
 	response.Success(ctx, gin.H{"category": updateCategory}, "")
 
 }
 
 func (c CategoryController) Show(ctx *gin.Context) {
-	var requestCategory model.Category
-	ctx.ShouldBind(requestCategory)
-	if requestCategory.Name == "" {
-		response.Fail(ctx, nil, "数据验证错误，分类名称必填")
-	}
-
 	var category model.Category
 	categoryID, _ := strconv.Atoi(ctx.Params.ByName("id"))
 	result := c.DB.First(&category, categoryID)
@@ -84,8 +79,9 @@ func (c CategoryController) Show(ctx *gin.Context) {
 
 func (c CategoryController) Delete(ctx *gin.Context) {
 	categoryID, _ := strconv.Atoi(ctx.Params.ByName("id"))
+	// 传入模型对象，告诉GORM要删除的是哪张表
 	// 根据主键删除，指定表格和主键值，DELETE FROM users WHERE id = 10;
-	if err := c.DB.Delete(model.Category{}, categoryID); err != nil {
+	if err := c.DB.Delete(model.Category{}, categoryID).Error; err != nil {
 		response.Fail(ctx, nil, "删除失败")
 		return
 	}
